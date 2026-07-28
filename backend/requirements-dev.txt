@@ -1,0 +1,12 @@
+# Dependências de desenvolvimento, teste e lint — nunca instaladas na
+# imagem Docker de produção (ver `Dockerfile`, stage `runtime`).
+-r requirements.txt
+
+pytest==9.1.1
+pytest-asyncio==1.4.0
+pytest-cov==7.1.0
+httpx==0.28.1
+fakeredis==2.37.0
+
+mypy==2.3.0
+ruff==0.16.0
