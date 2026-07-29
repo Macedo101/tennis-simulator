@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+tests/
+mlruns/
+mlflow.db
+dev.db
+*.db
+.env
+.venv/
+venv/
+requirements-dev.txt
