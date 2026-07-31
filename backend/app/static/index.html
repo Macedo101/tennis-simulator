@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de Ténis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --court: #123524;
+    --court-deep: #0B2419;
+    --panel: #16402C;
+    --line: #EDEAE0;
+    --line-dim: rgba(237,234,224,0.16);
+    --muted: rgba(237,234,224,0.58);
+    --ball: #D3EC3D;
+    --clay: #C15A32;
+    --danger: #E2704E;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--court);
+    background-image:
+      linear-gradient(var(--line-dim) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line-dim) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%;
+    color: var(--line);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+  }
+
+  .court-rule {
+    border: none;
+    border-top: 2px solid var(--line);
+    position: relative;
+    margin: 0;
+  }
+  .court-rule::after {
+    content: "";
+    position: absolute;
+    top: 6px; left: 0; right: 0;
+    border-top: 1px solid var(--line-dim);
+  }
+
+  header {
+    padding: 20px 24px 16px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  header h1 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+  header h1 span { color: var(--ball); }
+
+  #user-badge { font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 12px; }
+  #user-badge b { color: var(--line); }
+
+  main { max-width: 880px; margin: 0 auto; padding: 28px 20px 80px; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line-dim);
+    border-radius: 4px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ball);
+    margin: 0 0 6px;
+  }
+  h2 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 19px;
+    margin: 0 0 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+  input, select {
+    width: 100%;
+    background: var(--court-deep);
+    border: 1px solid var(--line-dim);
+    color: var(--line);
+    padding: 10px 12px;
+    border-radius: 3px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+  }
+  input:focus, select:focus { outline: 2px solid var(--ball); outline-offset: 1px; }
+
+  button {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 13px;
+    background: var(--ball);
+    color: var(--court-deep);
+    border: none;
+    padding: 10px 18px;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-top: 14px;
+  }
+  button:hover { filter: brightness(1.08); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.secondary {
+    background: transparent;
+    color: var(--line);
+    border: 1px solid var(--line-dim);
+  }
+  button.small { padding: 5px 10px; font-size: 11px; margin-top: 0; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tabs button {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--line-dim);
+    margin-top: 0;
+  }
+  .tabs button.active { background: var(--ball); color: var(--court-deep); border-color: var(--ball); }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .player-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line-dim);
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .player-row:last-child { border-bottom: none; }
+  .player-name { font-weight: 500; }
+  .player-meta { color: var(--muted); font-size: 12px; }
+
+  .slot-picks { display: flex; gap: 8px; }
+
+  .matchup {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+  .matchup .vs { color: var(--clay); font-size: 12px; }
+  .matchup .empty { color: var(--muted); font-style: normal; font-size: 13px; }
+
+  .error-banner {
+    background: rgba(226,112,78,0.15);
+    border: 1px solid var(--danger);
+    color: #F5C6B8;
+    padding: 10px 14px;
+    border-radius: 3px;
+    font-size: 13px;
+    margin-bottom: 14px;
+  }
+
+  .scoreboard {
+    text-align: center;
+    padding: 28px 16px;
+    border: 1px solid var(--line-dim);
+    border-radius: 4px;
+    background: var(--court-deep);
+  }
+  .scoreboard .pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 52px;
+    color: var(--ball);
+    line-height: 1;
+  }
+  .scoreboard .pct-label { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  .scoreboard .ci {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+  .bars { margin-top: 20px; text-align: left; }
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .bar-row .label { width: 44px; color: var(--muted); }
+  .bar-track { flex: 1; background: var(--line-dim); height: 10px; border-radius: 2px; overflow: hidden; }
+  .bar-fill { background: var(--ball); height: 100%; }
+  .bar-row .pct-val { width: 42px; text-align: right; color: var(--muted); }
+
+  .status-pill {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    background: var(--line-dim);
+  }
+  .status-completed { background: rgba(211,236,61,0.2); color: var(--ball); }
+  .status-failed { background: rgba(226,112,78,0.2); color: var(--danger); }
+
+  .hidden { display: none !important; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .row-gap { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row-gap > * { flex: 1; min-width: 140px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Simulador<span> de Ténis</span></h1>
+  <div id="user-badge"></div>
+</header>
+<hr class="court-rule">
+
+<main>
+
+  <section id="view-auth" class="view active">
+    <div class="card" style="max-width:380px;margin:40px auto;">
+      <p class="eyebrow" id="auth-eyebrow">Entrar</p>
+      <h2 id="auth-title">Iniciar sessão</h2>
+      <div id="auth-error" class="error-banner hidden"></div>
+
+      <div id="login-form">
+        <label>Email</label>
+        <input type="email" id="login-email">
+        <label>Password</label>
+        <input type="password" id="login-password">
+        <button onclick="doLogin()">Entrar</button>
+        <p class="muted" style="margin-top:16px;">
+          Ainda não tens conta?
+          <a href="#" onclick="showRegister();return false;" style="color:var(--ball);">Criar conta</a>
+        </p>
+      </div>
+
+      <div id="register-form" class="hidden">
+        <label>Nome</label>
+        <input type="text" id="register-name">
+        <label>Email</label>
+        <input type="email" id="register-email">
+        <label>Password <span class="muted">(mín. 10 caracteres, 1 maiúscula, 1 número)</span></label>
+        <input type="password" id="register-password">
+        <button onclick="doRegister()">Criar conta</button>
+        <p class="muted" style="margin-top:16px;">
+          Já tens conta?
+          <a href="#" onclick="showLogin();return false;" style="color:var(--ball);">Iniciar sessão</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-app" class="view">
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="players" onclick="switchTab('players')">Jogadores</button>
+      <button class="tab-btn" data-tab="simulate" onclick="switchTab('simulate')">Simular</button>
+      <button class="tab-btn" data-tab="history" onclick="switchTab('history')">Histórico</button>
+    </div>
+
+    <div id="tab-players" class="tab-content">
+      <div class="card">
+        <p class="eyebrow">Base de jogadores</p>
+        <h2>Procurar jogadores</h2>
+        <input type="text" id="player-search" placeholder="Nome do jogador..." oninput="debouncedSearch()">
+        <div id="players-list" style="margin-top:16px;"></div>
+      </div>
+
+      <div class="card" id="admin-add-player-card">
+        <p class="eyebrow">Admin</p>
+        <h2>Adicionar jogador</h2>
+        <div class="row-gap">
+          <div>
+            <label>Nome próprio</label>
+            <input type="text" id="new-player-first">
+          </div>
+          <div>
+            <label>Apelido</label>
+            <input type="text" id="new-player-last">
+          </div>
+        </div>
+        <div class="row-gap">
+          <div>
+            <label>País (ISO-2, opcional)</label>
+            <input type="text" id="new-player-country" maxlength="2" placeholder="ex: PT">
+          </div>
+          <div>
+            <label>Estilo (opcional)</label>
+            <select id="new-player-plays">
+              <option value="">—</option>
+              <option value="right-handed">Destro</option>
+              <option value="left-handed">Canhoto</option>
+            </select>
+          </div>
+        </div>
+        <button onclick="addPlayer()">Adicionar</button>
+      </div>
+    </div>
+
+    <div id="tab-simulate" class="tab-content hidden">
+      <div class="card">
+        <p class="eyebrow">Confronto</p>
+        <div class="matchup">
+          <span id="sim-p1-name" class="empty">Escolhe o Jogador 1 na aba "Jogadores"</span>
+          <span class="vs">vs</span>
+          <span id="sim-p2-name" class="empty">Escolhe o Jogador 2</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="eyebrow">Parâmetros</p>
+        <h2>Configurar simulação</h2>
+        <div class="row-gap">
+          <div>
+            <label>Superfície</label>
+            <select id="sim-surface"></select>
+          </div>
+          <div>
+            <label>Melhor de</label>
+            <select id="sim-best-of">
+              <option value="3">3 sets</option>
+              <option value="5">5 sets</option>
+            </select>
+          </div>
+          <div>
+            <label>Iterações</label>
+            <select id="sim-iterations">
+              <option value="1000">1 000 (rápido)</option>
+              <option value="10000" selected>10 000</option>
+              <option value="100000">100 000 (mais lento)</option>
+            </select>
+          </div>
+        </div>
+        <div id="sim-error" class="error-banner hidden"></div>
+        <button id="sim-run-btn" onclick="runSimulation()">Simular</button>
+      </div>
+
+      <div id="sim-result-card" class="card hidden">
+        <p class="eyebrow">Resultado</p>
+        <div id="sim-status" class="status-pill">a processar...</div>
+        <div id="sim-scoreboard" style="margin-top:16px;"></div>
+      </div>
+    </div>
+
+    <div id="tab-history" class="tab-content hidden">
+      <div class="card">
+        <p class="eyebrow">As tuas simulações</p>
+        <h2>Histórico</h2>
+        <div id="history-list"></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+const API = '/api/v1';
+let state = {
+  token: localStorage.getItem('access_token') || null,
+  refreshToken: localStorage.getItem('refresh_token') || null,
+  me: null,
+  players: [],
+  surfaces: [],
+  p1: null,
+  p2: null,
+  searchTimer: null,
+};
+
+async function api(path, opts = {}) {
+  const headers = opts.headers || {};
+  if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
+  const isPlainBody = opts.body && !(opts.body instanceof FormData) && !(opts.body instanceof URLSearchParams);
+  if (isPlainBody) headers['Content-Type'] = 'application/json';
+  const res = await fetch(API + path, { ...opts, headers });
+  if (res.status === 204) return null;
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(extractErrorMessage(data, res));
+  return data;
+}
+
+function extractErrorMessage(data, res) {
+  // `detail` é normalmente uma string (os nossos erros RFC 7807), mas em
+  // erros de validação automáticos do FastAPI (422) é uma LISTA de
+  // objetos {loc, msg, type} — sem este tratamento, `new Error(lista)`
+  // mostrava literalmente "[object Object]" ao utilizador.
+  if (!data) return 'Erro ' + res.status;
+  if (typeof data.detail === 'string') return data.detail;
+  if (Array.isArray(data.detail)) {
+    return data.detail
+      .map(err => (err.loc ? err.loc[err.loc.length - 1] + ': ' : '') + (err.msg || 'valor inválido'))
+      .join('; ');
+  }
+  return data.title || ('Erro ' + res.status);
+}
+
+function showError(elId, message) {
+  const el = document.getElementById(elId);
+  el.textContent = message;
+  el.classList.remove('hidden');
+}
+function hideError(elId) { document.getElementById(elId).classList.add('hidden'); }
+
+function showLogin() {
+  document.getElementById('login-form').classList.remove('hidden');
+  document.getElementById('register-form').classList.add('hidden');
+  document.getElementById('auth-title').textContent = 'Iniciar sessão';
+}
+function showRegister() {
+  document.getElementById('login-form').classList.add('hidden');
+  document.getElementById('register-form').classList.remove('hidden');
+  document.getElementById('auth-title').textContent = 'Criar conta';
+}
+
+async function doRegister() {
+  hideError('auth-error');
+  try {
+    await api('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        full_name: document.getElementById('register-name').value,
+        email: document.getElementById('register-email').value,
+        password: document.getElementById('register-password').value,
+      }),
+    });
+    document.getElementById('login-email').value = document.getElementById('register-email').value;
+    showLogin();
+  } catch (e) { showError('auth-error', e.message); }
+}
+
+async function doLogin() {
+  hideError('auth-error');
+  try {
+    const form = new URLSearchParams();
+    form.set('username', document.getElementById('login-email').value);
+    form.set('password', document.getElementById('login-password').value);
+    const data = await api('/auth/login', { method: 'POST', body: form });
+    state.token = data.access_token;
+    state.refreshToken = data.refresh_token;
+    localStorage.setItem('access_token', state.token);
+    localStorage.setItem('refresh_token', state.refreshToken);
+    await enterApp();
+  } catch (e) { showError('auth-error', e.message); }
+}
+
+async function doLogout() {
+  try { await api('/auth/logout', { method: 'POST', body: JSON.stringify({ refresh_token: state.refreshToken }) }); }
+  catch (e) { /* logout é best-effort do lado do cliente */ }
+  state.token = null; state.refreshToken = null; state.me = null;
+  localStorage.removeItem('access_token'); localStorage.removeItem('refresh_token');
+  document.getElementById('view-app').classList.remove('active');
+  document.getElementById('view-auth').classList.add('active');
+}
+
+async function enterApp() {
+  state.me = await api('/auth/me');
+  document.getElementById('user-badge').innerHTML =
+    'Olá, <b>' + state.me.full_name.split(' ')[0] + '</b>' +
+    (state.me.role === 'admin' ? ' <span class="status-pill">admin</span>' : '') +
+    ' <button class="secondary small" onclick="doLogout()">Sair</button>';
+  document.getElementById('admin-add-player-card').style.display = state.me.role === 'admin' ? 'block' : 'none';
+  document.getElementById('view-auth').classList.remove('active');
+  document.getElementById('view-app').classList.add('active');
+  await loadSurfaces();
+  await searchPlayers();
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+  document.getElementById('tab-' + name).classList.remove('hidden');
+  if (name === 'history') loadHistory();
+}
+
+function debouncedSearch() {
+  clearTimeout(state.searchTimer);
+  state.searchTimer = setTimeout(searchPlayers, 300);
+}
+
+async function searchPlayers() {
+  const q = document.getElementById('player-search').value;
+  try {
+    const res = await api('/players?' + new URLSearchParams({ limit: '20', ...(q ? { search: q } : {}) }));
+    state.players = res.data;
+    renderPlayers();
+  } catch (e) { document.getElementById('players-list').innerHTML = '<p class="muted">' + e.message + '</p>'; }
+}
+
+function renderPlayers() {
+  const el = document.getElementById('players-list');
+  if (state.players.length === 0) {
+    el.innerHTML = '<p class="muted">Sem jogadores ainda. ' +
+      (state.me && state.me.role === 'admin' ? 'Adiciona um abaixo.' : 'Pede a um admin para adicionar.') + '</p>';
+    return;
+  }
+  el.innerHTML = state.players.map(p => `
+    <div class="player-row">
+      <div>
+        <div class="player-name">${p.first_name} ${p.last_name}</div>
+        <div class="player-meta">${p.country_iso || '—'} · ${p.plays || 'estilo desconhecido'}</div>
+      </div>
+      <div class="slot-picks">
+        <button class="secondary small" onclick='pickPlayer(1, "${p.id}", "${p.first_name} ${p.last_name}")'>Jogador 1</button>
+        <button class="secondary small" onclick='pickPlayer(2, "${p.id}", "${p.first_name} ${p.last_name}")'>Jogador 2</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function pickPlayer(slot, id, name) {
+  if (slot === 1) { state.p1 = { id, name }; document.getElementById('sim-p1-name').textContent = name; document.getElementById('sim-p1-name').classList.remove('empty'); }
+  else { state.p2 = { id, name }; document.getElementById('sim-p2-name').textContent = name; document.getElementById('sim-p2-name').classList.remove('empty'); }
+  switchTab('simulate');
+}
+
+async function addPlayer() {
+  try {
+    await api('/players', {
+      method: 'POST',
+      body: JSON.stringify({
+        first_name: document.getElementById('new-player-first').value,
+        last_name: document.getElementById('new-player-last').value,
+        country_iso: document.getElementById('new-player-country').value || null,
+        plays: document.getElementById('new-player-plays').value || null,
+      }),
+    });
+    document.getElementById('new-player-first').value = '';
+    document.getElementById('new-player-last').value = '';
+    document.getElementById('new-player-country').value = '';
+    await searchPlayers();
+  } catch (e) { alert('Não foi possível adicionar: ' + e.message); }
+}
+
+async function loadSurfaces() {
+  state.surfaces = await api('/surfaces');
+  const sel = document.getElementById('sim-surface');
+  sel.innerHTML = state.surfaces.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+}
+
+async function runSimulation() {
+  hideError('sim-error');
+  if (!state.p1 || !state.p2) { showError('sim-error', 'Escolhe os dois jogadores primeiro (aba Jogadores).'); return; }
+  const btn = document.getElementById('sim-run-btn');
+  btn.disabled = true;
+  document.getElementById('sim-result-card').classList.remove('hidden');
+  document.getElementById('sim-status').textContent = 'a processar...';
+  document.getElementById('sim-status').className = 'status-pill';
+  document.getElementById('sim-scoreboard').innerHTML = '';
+  try {
+    const created = await api('/simulations', {
+      method: 'POST',
+      body: JSON.stringify({
+        player1_id: state.p1.id,
+        player2_id: state.p2.id,
+        surface: document.getElementById('sim-surface').value,
+        best_of: parseInt(document.getElementById('sim-best-of').value),
+        iterations: parseInt(document.getElementById('sim-iterations').value),
+      }),
+    });
+    await pollSimulation(created.id);
+  } catch (e) { showError('sim-error', e.message); }
+  finally { btn.disabled = false; }
+}
+
+async function pollSimulation(id) {
+  for (let i = 0; i < 60; i++) {
+    const result = await api('/simulations/' + id);
+    if (result.status === 'completed') { renderScoreboard(result); return; }
+    if (result.status === 'failed') {
+      document.getElementById('sim-status').textContent = 'falhou';
+      document.getElementById('sim-status').className = 'status-pill status-failed';
+      return;
+    }
+    document.getElementById('sim-status').textContent = result.status;
+    await new Promise(r => setTimeout(r, 800));
+  }
+}
+
+function renderScoreboard(result) {
+  document.getElementById('sim-status').textContent = 'completo';
+  document.getElementById('sim-status').className = 'status-pill status-completed';
+  const pct = (result.player1_win_probability * 100).toFixed(1);
+  const bars = Object.entries(result.sets_won_distribution || {})
+    .sort((a, b) => b[1] - a[1])
+    .map(([label, val]) => `
+      <div class="bar-row">
+        <div class="label">${label}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(val * 100).toFixed(0)}%"></div></div>
+        <div class="pct-val">${(val * 100).toFixed(0)}%</div>
+      </div>
+    `).join('');
+  document.getElementById('sim-scoreboard').innerHTML = `
+    <div class="scoreboard">
+      <div class="pct">${pct}%</div>
+      <div class="pct-label">Probabilidade de vitória — ${state.p1 ? state.p1.name : 'Jogador 1'}</div>
+      <div class="ci">IC 95%: ${(result.confidence_interval.lower * 100).toFixed(1)}% – ${(result.confidence_interval.upper * 100).toFixed(1)}%</div>
+      <div class="bars">${bars}</div>
+    </div>
+  `;
+}
+
+async function loadHistory() {
+  const el = document.getElementById('history-list');
+  try {
+    const history = await api('/simulations');
+    if (history.length === 0) { el.innerHTML = '<p class="muted">Ainda não correste nenhuma simulação.</p>'; return; }
+    el.innerHTML = history.map(h => `
+      <div class="player-row">
+        <div>
+          <div class="player-name">${h.player1_id.slice(0,8)}… vs ${h.player2_id.slice(0,8)}…</div>
+          <div class="player-meta">${h.best_of === 3 ? 'Melhor de 3' : 'Melhor de 5'} · ${h.iterations.toLocaleString()} iterações</div>
+        </div>
+        <div>
+          <span class="status-pill ${h.status === 'completed' ? 'status-completed' : h.status === 'failed' ? 'status-failed' : ''}">${h.status}</span>
+          ${h.status === 'completed' ? '<div class="player-meta" style="text-align:right;">' + (h.player1_win_probability * 100).toFixed(1) + '%</div>' : ''}
+        </div>
+      </div>
+    `).join('');
+  } catch (e) { el.innerHTML = '<p class="muted">' + e.message + '</p>'; }
+}
+
+(async function init() {
+  if (state.token) {
+    try { await enterApp(); return; } catch (e) { /* token inválido/expirado */ }
+  }
+  document.getElementById('view-auth').classList.add('active');
+})();
+</script>
+
+</body>
+</html>
